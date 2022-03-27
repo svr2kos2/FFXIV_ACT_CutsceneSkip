@@ -6,6 +6,8 @@ using System.Windows.Forms;
 using System.Windows.Forms;
 using Advanced_Combat_Tracker;
 using System.Runtime.InteropServices;
+using System.Text;
+using System.IO;
 
 namespace FFXIV_ACT_CutsceneSkip
 {
@@ -70,7 +72,8 @@ namespace FFXIV_ACT_CutsceneSkip
 				if(!WriteProcessMemory(process.Handle, baseAddress, new byte[] { 0x2e }, 1, IntPtr.Zero))
 					throw new Exception("WriteProcessMemory failed.");
 				statusLabel.Text = "Working :D";
-            } catch(Exception e)
+				ActGlobals.oFormActMain.OnLogLineRead += this.oFormActMain_OnLogLineRead;
+			} catch(Exception e)
             {
 				statusLabel.Text = e.Message;
 				process = null;
@@ -116,6 +119,57 @@ namespace FFXIV_ACT_CutsceneSkip
 				statusLabel.Text = "Exit :|";
             } else
 				statusLabel.Text = "Error :(";
+			ActGlobals.oFormActMain.OnLogLineRead -= this.oFormActMain_OnLogLineRead;
 		}
+
+		void SetActive(bool bActive)
+        {
+			if(statusLabel.Text == "Working :D")
+            {
+				try
+				{
+					WriteProcessMemory(process.Handle, baseAddress, new byte[] { (byte)(bActive ? 0x2e : 0x04) }, 1, IntPtr.Zero);
+
+				}
+				catch { }
+            }
+        }
+
+		public void oFormActMain_OnLogLineRead(bool isImport, LogLineEventArgs logInfo)
+		{
+			
+			//MessageBox.Show("on log linke");
+			if (statusLabel != null)
+            {
+				try
+                {
+					ActPluginData actPluginData = ActGlobals.oFormActMain.PluginGetSelfData(this);
+					var filePath = actPluginData.pluginFile.DirectoryName;
+					filePath = filePath + "\\loglines.cfg";
+					using (StreamWriter sw = new StreamWriter(filePath, true))
+					{
+						sw.WriteLine(logInfo.originalLogLine);
+						if (logInfo.originalLogLine.Contains("Territory"))
+						{
+							if (logInfo.originalLogLine.Contains("天幕魔导城最终决战") || logInfo.originalLogLine.Contains("帝国南方堡外围激战"))
+							{
+								SetActive(true);
+								statusLabel.Text = "Working :D enabled";
+
+							}
+							else
+							{
+								SetActive(false);
+								statusLabel.Text = "Working :D disabled";
+							}
+						}
+					}
+				} catch
+                {
+					statusLabel.Text = "Error :(";
+				}
+			}
+		}
+
 	}
 }
