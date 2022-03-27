@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Windows.Forms;
-using System.Windows.Forms;
 using Advanced_Combat_Tracker;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -95,11 +94,11 @@ namespace FFXIV_ACT_CutsceneSkip
 			{
 				try
 				{
-					byte[] current = new byte[1];
-					if (!ReadProcessMemory(process.Handle, baseAddress, current, 1, IntPtr.Zero))
-						throw new Exception("ReadProcessMemory failed.");
-					if (current[0] != 0x2e)
-						throw new Exception("Update.");
+					//byte[] current = new byte[1];
+					//if (!ReadProcessMemory(process.Handle, baseAddress, current, 1, IntPtr.Zero))
+					//	throw new Exception("ReadProcessMemory failed.");
+					//if (current[0] != 0x2e)
+					//	throw new Exception("Update.");
 				}
 				catch
 				{
@@ -124,7 +123,7 @@ namespace FFXIV_ACT_CutsceneSkip
 
 		void SetActive(bool bActive)
         {
-			if(statusLabel.Text == "Working :D")
+			if(statusLabel.Text.Contains("Working :D"))
             {
 				try
 				{
@@ -143,12 +142,12 @@ namespace FFXIV_ACT_CutsceneSkip
             {
 				try
                 {
-					ActPluginData actPluginData = ActGlobals.oFormActMain.PluginGetSelfData(this);
-					var filePath = actPluginData.pluginFile.DirectoryName;
-					filePath = filePath + "\\loglines.cfg";
-					using (StreamWriter sw = new StreamWriter(filePath, true))
-					{
-						sw.WriteLine(logInfo.originalLogLine);
+					//ActPluginData actPluginData = ActGlobals.oFormActMain.PluginGetSelfData(this);
+					//var filePath = actPluginData.pluginFile.DirectoryName;
+					//filePath = filePath + "\\loglines.cfg";
+					//using (StreamWriter sw = new StreamWriter(filePath, true))
+					//{
+						//sw.WriteLine(logInfo.originalLogLine);
 						if (logInfo.originalLogLine.Contains("Territory"))
 						{
 							if (logInfo.originalLogLine.Contains("天幕魔导城最终决战") || logInfo.originalLogLine.Contains("帝国南方堡外围激战"))
@@ -163,7 +162,7 @@ namespace FFXIV_ACT_CutsceneSkip
 								statusLabel.Text = "Working :D disabled";
 							}
 						}
-					}
+					//}
 				} catch
                 {
 					statusLabel.Text = "Error :(";
