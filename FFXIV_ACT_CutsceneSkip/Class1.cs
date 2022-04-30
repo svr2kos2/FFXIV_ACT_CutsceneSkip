@@ -150,11 +150,10 @@ namespace FFXIV_ACT_CutsceneSkip
 						//sw.WriteLine(logInfo.originalLogLine);
 						if (logInfo.originalLogLine.Contains("Territory"))
 						{
-							if (logInfo.originalLogLine.Contains("天幕魔导城最终决战") || logInfo.originalLogLine.Contains("帝国南方堡外围激战"))
+							if (logInfo.originalLogLine.Contains("Territory 01:E0:") || logInfo.originalLogLine.Contains("Territory 01:D9:"))
 							{
 								SetActive(true);
 								statusLabel.Text = "Working :D enabled";
-
 							}
 							else
 							{
