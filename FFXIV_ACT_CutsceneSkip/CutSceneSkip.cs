@@ -7,10 +7,11 @@ using Advanced_Combat_Tracker;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace FFXIV_ACT_CutsceneSkip
 {
-	public class MainCalss : IActPluginV1
+	public class CutsceneSkip : IActPluginV1
     {
 		[DllImport("kernel32.dll", SetLastError = true)]
 		static extern bool ReadProcessMemory(
@@ -55,28 +56,43 @@ namespace FFXIV_ACT_CutsceneSkip
 			screenSpace = pluginScreenSpace;
 			statusLabel = pluginStatusText;
 			retryTimer = new Timer();
-			try
-            {
-				process = Process.GetProcessesByName("ffxiv_dx11").FirstOrDefault();
-				if (process == null)
-					throw new Exception("You need to start FFXIV(DX11) to initialize this plugin.");
-				byte[] moduleData = new byte[process.MainModule.ModuleMemorySize];
-				if(!ReadProcessMemory(process.Handle, process.MainModule.BaseAddress, moduleData, process.MainModule.ModuleMemorySize, IntPtr.Zero))
-					throw new Exception("ReadProcessMemory failed.");
-				byte[] pattern = { 0x2e, 0x32, 0xdb, 0xeb, 0x2e, 0x48, 0x8b, 0x01 };
-				int match = Search(moduleData, pattern);
-				if (match == 0)
-					throw new Exception("Cannot find target bytes.");
-				baseAddress = new IntPtr(match + process.MainModule.BaseAddress.ToInt64());
-				if(!WriteProcessMemory(process.Handle, baseAddress, new byte[] { 0x2e }, 1, IntPtr.Zero))
-					throw new Exception("WriteProcessMemory failed.");
-				statusLabel.Text = "Working :D";
-				ActGlobals.oFormActMain.OnLogLineRead += this.oFormActMain_OnLogLineRead;
-			} catch(Exception e)
-            {
-				statusLabel.Text = e.Message;
-				process = null;
-			}
+			process = null;
+			Init();
+		}
+
+		void Init()
+		{
+			Task.Run(() =>
+			{
+				while (process == null)
+				{
+					process = Process.GetProcessesByName("ffxiv_dx11").FirstOrDefault();
+					statusLabel.Text = "FFXIV(dx11 only) not found.";
+					System.Threading.Thread.Sleep(1000);
+				}
+			}).ContinueWith((t) =>
+			{
+				try
+				{
+					byte[] moduleData = new byte[process.MainModule.ModuleMemorySize];
+					if (!ReadProcessMemory(process.Handle, process.MainModule.BaseAddress, moduleData, process.MainModule.ModuleMemorySize, IntPtr.Zero))
+						throw new Exception("ReadProcessMemory failed.");
+					byte[] pattern = { 0x2e, 0x32, 0xdb, 0xeb, 0x2e, 0x48, 0x8b, 0x01 };
+					int match = Search(moduleData, pattern);
+					if (match == 0)
+						throw new Exception("Cannot find target bytes.");
+					baseAddress = new IntPtr(match + process.MainModule.BaseAddress.ToInt64());
+					if (!WriteProcessMemory(process.Handle, baseAddress, new byte[] { 0x2e }, 1, IntPtr.Zero))
+						throw new Exception("WriteProcessMemory failed.");
+					statusLabel.Text = "Working pid="+ process.Id;
+					ActGlobals.oFormActMain.OnLogLineRead += this.oFormActMain_OnLogLineRead;
+				}
+				catch (Exception e)
+				{
+					statusLabel.Text = e.Message;
+					process = null;
+				}
+			});
 			retryTimer.Interval = 3000;
 			retryTimer.Tick += Refresh;
 			retryTimer.Start();
@@ -84,6 +100,7 @@ namespace FFXIV_ACT_CutsceneSkip
 
 		void Refresh(object sender, EventArgs e)
 		{
+			//statusLabel.Text = "Refeshing";
 			if (process == null || process.HasExited || baseAddress == IntPtr.Zero)
 			{
 				ActPluginData actPluginData = ActGlobals.oFormActMain.PluginGetSelfData(this);
@@ -117,7 +134,7 @@ namespace FFXIV_ACT_CutsceneSkip
 				WriteProcessMemory(process.Handle, baseAddress, new byte[] { 0x04 }, 1, IntPtr.Zero);
 				statusLabel.Text = "Exit :|";
             } else
-				statusLabel.Text = "Error :(";
+				//statusLabel.Text = "Error :(";
 			ActGlobals.oFormActMain.OnLogLineRead -= this.oFormActMain_OnLogLineRead;
 		}
 
