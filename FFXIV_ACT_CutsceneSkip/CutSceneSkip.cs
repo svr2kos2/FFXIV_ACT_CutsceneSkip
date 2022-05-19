@@ -49,15 +49,64 @@ namespace FFXIV_ACT_CutsceneSkip
 		TabPage screenSpace = null;
 		Process process = null;
 		IntPtr baseAddress = IntPtr.Zero;
-		Timer retryTimer = null;
+		Timer updateTimer = null;
+
+		CheckBox toggleAlwaysEnable;
+		Label lableAlwayEnable;
+
+
+		bool SyncConfig(bool write = false)
+		{
+			ActPluginData actPluginData = ActGlobals.oFormActMain.PluginGetSelfData(this);
+
+			var filePath = actPluginData.pluginFile.DirectoryName;
+			filePath = filePath + "\\cutscene_skip.cfg";
+			if (write == false && File.Exists(filePath))
+			{
+				using (StreamReader sr = new StreamReader(filePath))
+				{
+					return bool.Parse(sr.ReadLine());
+				}
+			}
+			else
+			{
+				using (StreamWriter sw = new StreamWriter(filePath))
+				{
+					sw.WriteLine(write);
+					return false;
+				}
+			}
+		}
+
 
 		public void InitPlugin(TabPage pluginScreenSpace, Label pluginStatusText)
 		{
 			screenSpace = pluginScreenSpace;
 			statusLabel = pluginStatusText;
-			retryTimer = new Timer();
+
+			toggleAlwaysEnable = new CheckBox();
+			toggleAlwaysEnable.Location = new System.Drawing.Point(10, 10);
+			toggleAlwaysEnable.Name = "toggleAlwaysEnable";
+			toggleAlwaysEnable.Size = new System.Drawing.Size(20, 20);
+			toggleAlwaysEnable.Checked = SyncConfig();
+			toggleAlwaysEnable.CheckedChanged += EnableAlwaysActive;
+
+			lableAlwayEnable = new Label();
+			lableAlwayEnable.Location = new System.Drawing.Point(30, 12);
+			lableAlwayEnable.Name = "lableAlwayEnable";
+			lableAlwayEnable.Text = "保持开启状态";
+			lableAlwayEnable.Size = new System.Drawing.Size(64, 20);
+
+			screenSpace.Controls.Add(toggleAlwaysEnable);
+			screenSpace.Controls.Add(lableAlwayEnable);
+
 			process = null;
 			Init();
+
+			updateTimer = new Timer();
+			updateTimer.Interval = 3000;
+			updateTimer.Tick += Update;
+			updateTimer.Start();
 		}
 
 		void Init()
@@ -93,42 +142,25 @@ namespace FFXIV_ACT_CutsceneSkip
 					process = null;
 				}
 			});
-			retryTimer.Interval = 3000;
-			retryTimer.Tick += Refresh;
-			retryTimer.Start();
 		}
 
-		void Refresh(object sender, EventArgs e)
+		void Update(object sender, EventArgs e)
 		{
 			//statusLabel.Text = "Refeshing";
 			if (process == null || process.HasExited || baseAddress == IntPtr.Zero)
 			{
-				ActPluginData actPluginData = ActGlobals.oFormActMain.PluginGetSelfData(this);
-				actPluginData.cbEnabled.Checked = false;
-				actPluginData.cbEnabled.Checked = true;
+				Init();
 			}
 			else
 			{
-				try
-				{
-					//byte[] current = new byte[1];
-					//if (!ReadProcessMemory(process.Handle, baseAddress, current, 1, IntPtr.Zero))
-					//	throw new Exception("ReadProcessMemory failed.");
-					//if (current[0] != 0x2e)
-					//	throw new Exception("Update.");
-				}
-				catch
-				{
-					ActPluginData actPluginData = ActGlobals.oFormActMain.PluginGetSelfData(this);
-					actPluginData.cbEnabled.Checked = false;
-					actPluginData.cbEnabled.Checked = true;
-				}
+				if (statusLabel != null && !statusLabel.Text.Contains("Working :D"))
+					Init();
 			}
 		}
 		public void DeInitPlugin()
 		{
-			if (retryTimer != null && retryTimer.Enabled)
-				retryTimer.Stop();
+			if (updateTimer != null && updateTimer.Enabled)
+				updateTimer.Stop();
 			if (process !=null && baseAddress!=IntPtr.Zero)
             {
 				WriteProcessMemory(process.Handle, baseAddress, new byte[] { 0x04 }, 1, IntPtr.Zero);
@@ -136,6 +168,7 @@ namespace FFXIV_ACT_CutsceneSkip
             } else
 				//statusLabel.Text = "Error :(";
 			ActGlobals.oFormActMain.OnLogLineRead -= this.oFormActMain_OnLogLineRead;
+			SyncConfig(toggleAlwaysEnable.Checked);
 		}
 
 		void SetActive(bool bActive)
@@ -145,11 +178,16 @@ namespace FFXIV_ACT_CutsceneSkip
 				try
 				{
 					WriteProcessMemory(process.Handle, baseAddress, new byte[] { (byte)(bActive ? 0x2e : 0x04) }, 1, IntPtr.Zero);
-
 				}
 				catch { }
             }
         }
+
+		void EnableAlwaysActive(object sender, EventArgs e)
+		{
+			if(toggleAlwaysEnable.Checked)
+				SetActive(true);
+		}
 
 		public void oFormActMain_OnLogLineRead(bool isImport, LogLineEventArgs logInfo)
 		{
@@ -167,7 +205,7 @@ namespace FFXIV_ACT_CutsceneSkip
 						//sw.WriteLine(logInfo.originalLogLine);
 						if (logInfo.originalLogLine.Contains("Territory"))
 						{
-							if (logInfo.originalLogLine.Contains("Territory 01:E0:") || logInfo.originalLogLine.Contains("Territory 01:D9:"))
+							if (toggleAlwaysEnable.Checked || logInfo.originalLogLine.Contains("Territory 01:E0:") || logInfo.originalLogLine.Contains("Territory 01:D9:"))
 							{
 								SetActive(true);
 								statusLabel.Text = "Working :D enabled";
