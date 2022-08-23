@@ -73,7 +73,7 @@ namespace FFXIV_ACT_CutsceneSkip
 				using (StreamWriter sw = new StreamWriter(filePath))
 				{
 					sw.WriteLine(write);
-					return false;
+					return true;
 				}
 			}
 		}
@@ -83,7 +83,7 @@ namespace FFXIV_ACT_CutsceneSkip
 		{
 			screenSpace = pluginScreenSpace;
 			statusLabel = pluginStatusText;
-
+			pluginScreenSpace.Text = "辍学";
 			toggleAlwaysEnable = new CheckBox();
 			toggleAlwaysEnable.Location = new System.Drawing.Point(10, 10);
 			toggleAlwaysEnable.Name = "toggleAlwaysEnable";
@@ -205,7 +205,7 @@ namespace FFXIV_ACT_CutsceneSkip
 						//sw.WriteLine(logInfo.originalLogLine);
 						if (logInfo.originalLogLine.Contains("Territory"))
 						{
-							if (toggleAlwaysEnable.Checked || logInfo.originalLogLine.Contains("Territory 01:E0:") || logInfo.originalLogLine.Contains("Territory 01:D9:"))
+							if (toggleAlwaysEnable.Checked || logInfo.originalLogLine.Contains("Territory 01:413:") || logInfo.originalLogLine.Contains("Territory 01:414:"))
 							{
 								SetActive(true);
 								statusLabel.Text = "Working :D enabled";
