@@ -205,7 +205,7 @@ namespace FFXIV_ACT_CutsceneSkip
 						//sw.WriteLine(logInfo.originalLogLine);
 						if (logInfo.originalLogLine.Contains("Territory"))
 						{
-							if (toggleAlwaysEnable.Checked || logInfo.originalLogLine.Contains("Territory 01:413:") || logInfo.originalLogLine.Contains("Territory 01:414:"))
+							if (toggleAlwaysEnable.Checked || logInfo.originalLogLine.Contains("Territory 01:413:") || logInfo.originalLogLine.Contains("Territory 01:414:") || logInfo.originalLogLine.Contains("Territory 01:418:"))
 							{
 								SetActive(true);
 								statusLabel.Text = "Working :D enabled";
